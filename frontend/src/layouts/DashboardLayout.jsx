@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from "react"
-import { Menu } from "lucide-react"
+import { Menu, Sun, Moon } from "lucide-react"
 import Sidebar from "@/components/Sidebar"
 
 export default function DashboardLayout({ children }) {
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [patientName, setPatientName] = useState("Patient Account")
+  const [isDarkMode, setIsDarkMode] = useState(false)
 
   // Load client parameters and set theme on load
   useEffect(() => {
@@ -16,12 +17,33 @@ export default function DashboardLayout({ children }) {
 
     // Sync theme settings
     const savedTheme = localStorage.getItem("mediguide_theme") || "light"
-    if (savedTheme === "dark") {
+    const isDark = savedTheme === "dark"
+    setIsDarkMode(isDark)
+    if (isDark) {
       document.documentElement.classList.add("dark")
     } else {
       document.documentElement.classList.remove("dark")
     }
+
+    const handleThemeChange = () => {
+      setIsDarkMode(document.documentElement.classList.contains("dark"))
+    }
+    window.addEventListener("themechange", handleThemeChange)
+    return () => window.removeEventListener("themechange", handleThemeChange)
   }, [])
+
+  const toggleTheme = () => {
+    const nextDark = !isDarkMode
+    setIsDarkMode(nextDark)
+    if (nextDark) {
+      document.documentElement.classList.add("dark")
+      localStorage.setItem("mediguide_theme", "dark")
+    } else {
+      document.documentElement.classList.remove("dark")
+      localStorage.setItem("mediguide_theme", "light")
+    }
+    window.dispatchEvent(new Event("themechange"))
+  }
 
   // Dynamic profile avatar initials
   const getInitials = (name) => {
@@ -54,6 +76,19 @@ export default function DashboardLayout({ children }) {
           </button>
 
           <div className="flex items-center gap-3 ml-auto select-none">
+            {/* Quick Theme Toggle */}
+            <button
+              onClick={toggleTheme}
+              className="p-2 text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+              title={isDarkMode ? "Switch to Light Mode" : "Switch to Dark Mode"}
+            >
+              {isDarkMode ? (
+                <Sun className="h-5.5 w-5.5 text-amber-500" />
+              ) : (
+                <Moon className="h-5.5 w-5.5 text-slate-600" />
+              )}
+            </button>
+
             <div className="h-9 w-9 rounded-xl bg-blue-50 dark:bg-teal-950 border border-blue-100 dark:border-teal-900/30 flex items-center justify-center font-display text-sm font-extrabold text-blue-600 dark:text-teal-400">
               {getInitials(patientName)}
             </div>

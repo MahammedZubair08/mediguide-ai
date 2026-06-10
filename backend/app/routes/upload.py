@@ -1,9 +1,12 @@
 import os
 import shutil
+# pyrefly: ignore [missing-import]
+from PIL import Image
+# pyrefly: ignore [missing-import]
 from fastapi import APIRouter, UploadFile, File, HTTPException
 from pydantic import BaseModel
 from app.utils.parser import extract_text_from_pdf
-from app.services.gemini_service import gemini_service
+from app.services.groq_service import groq_service
 
 router = APIRouter(prefix="/upload", tags=["upload"])
 
@@ -24,10 +27,10 @@ async def upload_medical_report(file: UploadFile = File(...)):
     filename = file.filename
     file_ext = os.path.splitext(filename)[1].lower()
     
-    if file_ext not in [".pdf", ".txt"]:
+    if file_ext not in [".pdf", ".txt", ".png", ".jpg", ".jpeg"]:
         raise HTTPException(
             status_code=400, 
-            detail="Unsupported file format. Please upload a PDF or TXT file."
+            detail="Unsupported file format. Please upload a PDF, TXT, or image file (PNG, JPG)."
         )
     
     # Save file to uploads folder
@@ -41,28 +44,42 @@ async def upload_medical_report(file: UploadFile = File(...)):
             detail=f"Could not save file to disk: {str(e)}"
         )
         
-    # Extract text content
+    # Extract text content / process image
     extracted_text = ""
-    try:
-        if file_ext == ".pdf":
-            extracted_text = extract_text_from_pdf(file_path)
-        else:
-            with open(file_path, "r", encoding="utf-8", errors="ignore") as f:
-                extracted_text = f.read()
-    except Exception as e:
-        raise HTTPException(
-            status_code=422,
-            detail=f"Error reading file content: {str(e)}"
-        )
-        
-    if not extracted_text.strip():
-        raise HTTPException(
-            status_code=422,
-            detail="The file appears to be empty or contains no parseable text."
-        )
-
-    # Summarize with Gemini service
-    summary_result = await gemini_service.summarize_report(extracted_text)
+    summary_result = ""
+    
+    if file_ext in [".png", ".jpg", ".jpeg"]:
+        try:
+            image = Image.open(file_path)
+            if image.mode not in ("RGB", "L"):
+                image = image.convert("RGB")
+            summary_result = await groq_service.summarize_report_image(image)
+            extracted_text = "[IMAGE CONTENT]"
+        except Exception as e:
+            raise HTTPException(
+                status_code=422,
+                detail=f"Error processing image report: {str(e)}"
+            )
+    else:
+        try:
+            if file_ext == ".pdf":
+                extracted_text = extract_text_from_pdf(file_path)
+            else:
+                with open(file_path, "r", encoding="utf-8", errors="ignore") as f:
+                    extracted_text = f.read()
+        except Exception as e:
+            raise HTTPException(
+                status_code=422,
+                detail=f"Error reading file content: {str(e)}"
+            )
+            
+        if not extracted_text.strip():
+            raise HTTPException(
+                status_code=422,
+                detail="The file appears to be empty or contains no parseable text."
+            )
+            
+        summary_result = await groq_service.summarize_report(extracted_text)
     
     # Return response with a short snippet of the text
     snippet_len = min(len(extracted_text), 300)

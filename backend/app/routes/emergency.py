@@ -1,6 +1,7 @@
+# pyrefly: ignore [missing-import]
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
-from app.services.gemini_service import gemini_service
+from app.services.groq_service import groq_service
 
 router = APIRouter(prefix="/emergency", tags=["emergency"])
 
@@ -17,7 +18,7 @@ async def triage_symptoms(request: EmergencyRequest):
     if not request.symptoms.strip():
         raise HTTPException(status_code=400, detail="Symptoms text cannot be empty.")
         
-    triage_result = await gemini_service.detect_emergency(request.symptoms)
+    triage_result = await groq_service.detect_emergency(request.symptoms)
     
     # Ensure fields are present and safe
     return EmergencyResponse(

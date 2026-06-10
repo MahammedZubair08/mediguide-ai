@@ -1,10 +1,12 @@
 import os
 import shutil
+# pyrefly: ignore [missing-import]
 from PIL import Image
+# pyrefly: ignore [missing-import]
 from fastapi import APIRouter, File, UploadFile, HTTPException
 from pydantic import BaseModel
 from app.utils.parser import extract_text_from_pdf
-from app.services.gemini_service import gemini_service
+from app.services.groq_service import groq_service
 
 router = APIRouter()
 
@@ -39,10 +41,10 @@ async def core_chat(request: CoreChatRequest):
         raise HTTPException(status_code=400, detail="Message cannot be empty.")
     
     # Generate advisory text
-    reply_text = await gemini_service.generate_chat_response(user_message=request.message)
+    reply_text = await groq_service.generate_chat_response(user_message=request.message)
     
     # Run urgency triage in parallel
-    triage_result = await gemini_service.detect_emergency(symptoms=request.message)
+    triage_result = await groq_service.detect_emergency(symptoms=request.message)
     is_emergency = triage_result.get("triage_level") == "CRITICAL"
     
     return CoreChatResponse(
@@ -59,7 +61,7 @@ async def core_emergency_check(request: CoreEmergencyRequest):
     if not request.symptoms.strip():
         raise HTTPException(status_code=400, detail="Symptoms text cannot be empty.")
         
-    triage_result = await gemini_service.detect_emergency(symptoms=request.symptoms)
+    triage_result = await groq_service.detect_emergency(symptoms=request.symptoms)
     is_emergency = triage_result.get("triage_level") == "CRITICAL"
     
     if is_emergency:
@@ -100,12 +102,12 @@ async def core_upload_report(file: UploadFile = File(...)):
     summary_result = ""
     try:
         if file_ext in [".png", ".jpg", ".jpeg"]:
-            # Load with Pillow for multimodal Gemini call
+            # Load with Pillow for multimodal Groq call
             try:
                 image = Image.open(file_path)
                 if image.mode not in ("RGB", "L"):
                     image = image.convert("RGB")
-                summary_result = await gemini_service.summarize_report_image(image)
+                summary_result = await groq_service.summarize_report_image(image)
             except Exception as img_err:
                 raise HTTPException(
                     status_code=422,
@@ -118,7 +120,7 @@ async def core_upload_report(file: UploadFile = File(...)):
                     status_code=422,
                     detail="PDF contains no parseable text characters."
                 )
-            summary_result = await gemini_service.summarize_report(extracted_text)
+            summary_result = await groq_service.summarize_report(extracted_text)
         else:
             with open(file_path, "r", encoding="utf-8", errors="ignore") as f:
                 extracted_text = f.read()
@@ -127,7 +129,7 @@ async def core_upload_report(file: UploadFile = File(...)):
                     status_code=422,
                     detail="TXT file contains no text."
                 )
-            summary_result = await gemini_service.summarize_report(extracted_text)
+            summary_result = await groq_service.summarize_report(extracted_text)
     except HTTPException:
         raise
     except Exception as e:

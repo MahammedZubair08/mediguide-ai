@@ -20,7 +20,7 @@ export default function LandingPage() {
       description: "Describe symptoms in plain text to get evidence-based clinical possibilities, questions for your doctor, and self-care advisory.",
       icon: Stethoscope,
       color: "bg-blue-500/10 text-blue-600 dark:text-teal-400 dark:bg-teal-950/20",
-      badge: "Gemini Pro Powered"
+      badge: "Groq Powered"
     },
     {
       title: "Report Interpretation",
@@ -47,7 +47,7 @@ export default function LandingPage() {
     {
       num: "02",
       title: "Describe or Upload",
-      description: "Briefly explain symptoms, or drag & drop files to parse them through the Gemini AI services."
+      description: "Briefly explain symptoms, or drag & drop files to parse them through the Groq AI services."
     },
     {
       num: "03",

@@ -7,7 +7,7 @@ class Settings(BaseSettings):
     HOST: str = "0.0.0.0"
     PORT: int = 8000
     ENVIRONMENT: str = "development"
-    GEMINI_API_KEY: str = "PLACEHOLDER_GEMINI_API_KEY"
+    GROQ_API_KEY: str = "PLACEHOLDER_GROQ_API_KEY"
     ALLOWED_ORIGINS: str = "http://localhost:5173,http://localhost:3000"
 
     @property

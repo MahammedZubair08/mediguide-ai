@@ -33,6 +33,16 @@ export default function SettingsPage() {
     setTheme(isDark ? "dark" : "light")
   }, [])
 
+  // Sync theme changes from other components (e.g. global toggle)
+  useEffect(() => {
+    const handleThemeChange = () => {
+      const isDark = document.documentElement.classList.contains("dark")
+      setTheme(isDark ? "dark" : "light")
+    }
+    window.addEventListener("themechange", handleThemeChange)
+    return () => window.removeEventListener("themechange", handleThemeChange)
+  }, [])
+
   const handleSave = (e) => {
     e.preventDefault()
 
@@ -171,7 +181,11 @@ export default function SettingsPage() {
               <div className="flex bg-slate-100 dark:bg-slate-950 p-1 rounded-xl border border-slate-150 dark:border-slate-900">
                 <button
                   type="button"
-                  onClick={() => setTheme("light")}
+                  onClick={() => {
+                    setTheme("light")
+                    document.documentElement.classList.remove("dark")
+                    window.dispatchEvent(new Event("themechange"))
+                  }}
                   className={`px-3 py-1.5 rounded-lg font-bold text-[10.5px] transition-all ${
                     theme === "light" 
                       ? "bg-white text-slate-900 shadow-xs" 
@@ -182,7 +196,11 @@ export default function SettingsPage() {
                 </button>
                 <button
                   type="button"
-                  onClick={() => setTheme("dark")}
+                  onClick={() => {
+                    setTheme("dark")
+                    document.documentElement.classList.add("dark")
+                    window.dispatchEvent(new Event("themechange"))
+                  }}
                   className={`px-3 py-1.5 rounded-lg font-bold text-[10.5px] transition-all ${
                     theme === "dark" 
                       ? "bg-slate-900 text-white shadow-xs" 

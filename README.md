@@ -46,11 +46,13 @@ mediguide-ai/
    ```bash
    pip install -r requirements.txt
    ```
-4. Create a `.env` file based on `.env` settings and insert your `GEMINI_API_KEY`:
+4. Create a `.env` file based on `.env` settings:
    ```env
    GEMINI_API_KEY=your_gemini_api_key_here
    PORT=8000
    HOST=0.0.0.0
+   # Required for Python 3.14+ compatibility:
+   PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION=python
    ```
 5. Run the FastAPI development server:
    ```bash

@@ -1,7 +1,94 @@
 import React, { useState } from "react"
-import { FileText, ClipboardList, BookOpen, Clock, CheckCircle } from "lucide-react"
+import { 
+  FileText, 
+  ClipboardList, 
+  BookOpen, 
+  Clock, 
+  CheckCircle,
+  CheckCircle2,
+  MessageSquare,
+  HelpCircle,
+  HeartPulse,
+  Compass
+} from "lucide-react"
 import { apiService } from "@/services/api"
 import UploadCard from "@/components/UploadCard"
+
+const formatInlineMarkdown = (text) => {
+  if (!text) return ""
+  // Replace bold **text**
+  let formatted = text.replace(/\*\*(.*?)\*\*/g, '<strong class="font-extrabold text-slate-900 dark:text-white">$1</strong>')
+  // Replace italic *text*
+  formatted = formatted.replace(/\*(.*?)\*/g, '<em class="italic text-slate-800 dark:text-slate-200">$1</em>')
+  // Replace code ticks
+  formatted = formatted.replace(/`(.*?)`/g, '<code class="px-1.5 py-0.5 bg-slate-100 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded font-mono text-[11px]">$1</code>')
+  return formatted
+}
+
+const parseSummary = (text) => {
+  if (!text) return null
+
+  const sections = {
+    executiveSummary: "",
+    keyFindings: [],
+    discussionPoints: [],
+    nextSteps: [],
+    disclaimer: ""
+  }
+
+  const lines = text.split('\n')
+  let currentSection = ""
+
+  lines.forEach(line => {
+    const cleanLine = line.trim()
+    if (!cleanLine) return
+
+    const lowerLine = cleanLine.toLowerCase()
+    
+    // Detect section headers
+    if (lowerLine.includes("executive summary")) {
+      currentSection = "executive"
+      return
+    } else if (lowerLine.includes("key findings") || lowerLine.includes("findings explained")) {
+      currentSection = "findings"
+      return
+    } else if (lowerLine.includes("areas for discussion") || lowerLine.includes("discussion points") || lowerLine.includes("discussion:")) {
+      currentSection = "discussion"
+      return
+    } else if (lowerLine.includes("next steps") || lowerLine.includes("actionable steps")) {
+      currentSection = "next"
+      return
+    } else if (lowerLine.includes("disclaimer") || lowerLine.includes("safety safeguard") || lowerLine.includes("important medical disclaimer") || lowerLine.includes("must be reviewed with a qualified")) {
+      currentSection = "disclaimer"
+      if (lowerLine.startsWith("###") || lowerLine.startsWith("**") || lowerLine.includes("disclaimer:")) {
+        return
+      }
+    }
+
+    // Capture sections
+    if (currentSection === "executive") {
+      const stripped = cleanLine.replace(/^(executive summary:?|###|1\.)\s*/i, "")
+      sections.executiveSummary += (sections.executiveSummary ? " " : "") + stripped
+    } else if (currentSection === "findings") {
+      const stripped = cleanLine.replace(/^[-•*]\s*/, "")
+      if (stripped) sections.keyFindings.push(stripped)
+    } else if (currentSection === "discussion") {
+      const stripped = cleanLine.replace(/^[-•*]\s*/, "")
+      if (stripped) sections.discussionPoints.push(stripped)
+    } else if (currentSection === "next") {
+      const stripped = cleanLine.replace(/^[-•*]\s*/, "")
+      if (stripped) sections.nextSteps.push(stripped)
+    } else if (currentSection === "disclaimer") {
+      sections.disclaimer += (sections.disclaimer ? " " : "") + cleanLine
+    }
+  })
+
+  if (sections.executiveSummary || sections.keyFindings.length > 0) {
+    return sections
+  }
+
+  return null
+}
 
 export default function ReportUpload() {
   const [file, setFile] = useState(null)
@@ -61,7 +148,7 @@ export default function ReportUpload() {
     const intervals = [
       { max: 20, msg: "Uploading file block structures..." },
       { max: 50, msg: "Extracting clinical lab measurements..." },
-      { max: 80, msg: "Translating diagnostic jargon via Gemini AI..." },
+      { max: 80, msg: "Translating diagnostic jargon via Groq AI..." },
       { max: 95, msg: "Refining summary suggestions..." }
     ]
 
@@ -195,10 +282,114 @@ The report shows a typical lipid panel layout. Vital indicators are healthy with
                 </div>
               </div>
 
-              {/* Summary text parser */}
-              <div className="prose prose-sm dark:prose-invert text-slate-700 dark:text-slate-300 leading-relaxed space-y-4 whitespace-pre-line">
-                {result.summary}
-              </div>
+              {/* Structured Beautiful Summary Report Dashboard */}
+              {(() => {
+                const parsed = parseSummary(result.summary)
+                if (!parsed) {
+                  return (
+                    <div className="prose prose-sm dark:prose-invert text-slate-700 dark:text-slate-300 leading-relaxed space-y-4 whitespace-pre-line">
+                      {result.summary}
+                    </div>
+                  )
+                }
+
+                return (
+                  <div className="space-y-6 text-xs text-slate-650 dark:text-slate-350">
+                    {/* Executive Summary Card */}
+                    {parsed.executiveSummary && (
+                      <div className="p-5 bg-radial from-blue-50/20 via-transparent to-transparent dark:from-teal-950/10 border border-blue-100/50 dark:border-teal-900/30 rounded-2xl space-y-2 relative overflow-hidden glass-panel">
+                        <div className="flex items-center gap-2 text-slate-800 dark:text-white font-display font-extrabold text-sm border-b border-slate-100 dark:border-slate-800/80 pb-2">
+                          <HeartPulse className="h-5 w-5 text-blue-600 dark:text-teal-400" />
+                          <span>Executive Summary</span>
+                        </div>
+                        <p className="leading-relaxed font-semibold text-slate-700 dark:text-slate-300">
+                          {parsed.executiveSummary}
+                        </p>
+                      </div>
+                    )}
+
+                    {/* Key Findings Card */}
+                    {parsed.keyFindings.length > 0 && (
+                      <div className="space-y-3">
+                        <div className="flex items-center gap-2 text-slate-800 dark:text-white font-display font-extrabold text-sm border-b border-slate-100 dark:border-slate-800/80 pb-2">
+                          <CheckCircle2 className="h-5 w-5 text-emerald-500" />
+                          <span>Key Findings Explained</span>
+                        </div>
+                        <div className="grid gap-3 sm:grid-cols-1">
+                          {parsed.keyFindings.map((finding, idx) => (
+                            <div 
+                              key={idx} 
+                              className="flex gap-3 p-4 bg-slate-50 dark:bg-slate-950/40 border border-slate-200/60 dark:border-slate-800 rounded-2xl hover:border-slate-300 dark:hover:border-slate-700 transition-colors shadow-xs"
+                            >
+                              <div className="h-5 w-5 rounded-full bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-100/50 dark:border-emerald-900/20 flex items-center justify-center shrink-0 mt-0.5">
+                                <span className="h-2 w-2 rounded-full bg-emerald-500" />
+                              </div>
+                              <p 
+                                className="leading-relaxed font-medium"
+                                dangerouslySetInnerHTML={{ __html: formatInlineMarkdown(finding) }}
+                              />
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Areas for Discussion Card */}
+                    {parsed.discussionPoints.length > 0 && (
+                      <div className="space-y-3">
+                        <div className="flex items-center gap-2 text-slate-800 dark:text-white font-display font-extrabold text-sm border-b border-slate-100 dark:border-slate-800/80 pb-2">
+                          <MessageSquare className="h-5 w-5 text-blue-600 dark:text-teal-400" />
+                          <span>Questions for Your Doctor</span>
+                        </div>
+                        <div className="space-y-3">
+                          {parsed.discussionPoints.map((point, idx) => (
+                            <div 
+                              key={idx} 
+                              className="p-4 bg-blue-50/20 dark:bg-teal-950/10 border border-blue-100/30 dark:border-teal-900/10 rounded-2xl flex gap-3 shadow-2xs"
+                            >
+                              <HelpCircle className="h-5 w-5 text-blue-500 dark:text-teal-450 shrink-0 mt-0.5" />
+                              <p 
+                                className="leading-relaxed font-semibold text-slate-800 dark:text-slate-200"
+                                dangerouslySetInnerHTML={{ __html: formatInlineMarkdown(point) }}
+                              />
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Next Steps Card */}
+                    {parsed.nextSteps.length > 0 && (
+                      <div className="space-y-3">
+                        <div className="flex items-center gap-2 text-slate-800 dark:text-white font-display font-extrabold text-sm border-b border-slate-100 dark:border-slate-800/80 pb-2">
+                          <Compass className="h-5 w-5 text-amber-500" />
+                          <span>Recommended Action Plan</span>
+                        </div>
+                        <div className="p-5 bg-amber-50/20 dark:bg-amber-950/5 border border-amber-100/30 dark:border-amber-900/10 rounded-2xl space-y-3.5 shadow-2xs">
+                          {parsed.nextSteps.map((step, idx) => (
+                            <div key={idx} className="flex gap-2.5 items-start">
+                              <span className="h-4.5 w-4.5 rounded-lg bg-amber-100/60 dark:bg-amber-950/40 text-amber-700 dark:text-amber-400 text-[10px] font-black flex items-center justify-center shrink-0 mt-0.5">
+                                {idx + 1}
+                              </span>
+                              <p 
+                                className="leading-relaxed font-semibold text-slate-700 dark:text-slate-300"
+                                dangerouslySetInnerHTML={{ __html: formatInlineMarkdown(step) }}
+                              />
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Disclaimer Card */}
+                    {parsed.disclaimer && (
+                      <div className="p-4 bg-rose-50/30 dark:bg-rose-950/10 border border-rose-100/30 dark:border-rose-900/20 rounded-2xl text-[10px] text-rose-800 dark:text-rose-400 font-bold leading-relaxed shadow-3xs">
+                        ⚠️ Disclaimer: {parsed.disclaimer.replace(/^(disclaimer|⚠️|warning):?\s*/i, "")}
+                      </div>
+                    )}
+                  </div>
+                )
+              })()}
 
               {/* Text Extract Container */}
               {result.extracted_text_snippet && (

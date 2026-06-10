@@ -1,3 +1,8 @@
+import os
+from dotenv import load_dotenv
+# Load environment variables before any other imports to configure libraries like Protobuf
+load_dotenv(os.path.join(os.path.dirname(__file__), ".env"))
+
 import logging
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
@@ -48,10 +53,10 @@ def health_check():
     """
     Returns API health status.
     """
-    from app.services.gemini_service import has_key
+    from app.services.groq_service import has_key
     return {
         "status": "healthy",
-        "gemini_api_configured": has_key,
+        "groq_api_configured": has_key,
         "environment": settings.ENVIRONMENT
     }
 

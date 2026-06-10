@@ -1,8 +1,9 @@
 
+# pyrefly: ignore [missing-import]
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 from typing import List, Optional
-from app.services.gemini_service import gemini_service
+from app.services.groq_service import groq_service
 
 router = APIRouter(prefix="/chat", tags=["chat"])
 
@@ -22,13 +23,14 @@ async def chat_symptoms(request: ChatRequest):
     if not request.message.strip():
         raise HTTPException(status_code=400, detail="Message cannot be empty.")
     
-    # We can format history or send message directly
+    # Format history for OpenAI/Groq structure
     history_list = []
     if request.history:
         for msg in request.history:
-            history_list.append({"role": msg.role, "parts": [msg.content]})
+            role = "assistant" if msg.role == "model" else msg.role
+            history_list.append({"role": role, "content": msg.content})
             
-    response_text = await gemini_service.generate_chat_response(
+    response_text = await groq_service.generate_chat_response(
         user_message=request.message,
         history=history_list
     )
